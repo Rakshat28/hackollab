@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form'
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
 import { Plus } from 'lucide-react';
-
+import { toast } from 'sonner';
+import { api } from '~/trpc/react';
 
 type FormInput = {
     repoUrl: string,
@@ -14,9 +15,27 @@ type FormInput = {
 
 
 function CreatePage() {
-  const { register,handleSubmit} = useForm<FormInput>();
+  const { register,handleSubmit,reset} = useForm<FormInput>();
+  const createProject = api.project.createProject.useMutation()
+  const utils = api.useUtils();
   function onSubmit(data:FormInput){
-    console.log(data);
+    createProject.mutate({
+        name: data.projectName,
+        githubUrl: data.repoUrl,
+        githubToken: data.githubToken
+    },{
+        onSuccess : ()=> {
+            toast.success("Project created successfully")
+            void utils.project.getProjects.invalidate();
+            reset()
+            
+        }, onError : (error) => {
+          if(error?.data?.code === "CONFLICT")
+            toast.error(error?.message);
+          if(error?.data?.code === "INTERNAL_SERVER_ERROR")
+            toast.error(error?.message)
+        }
+    })
     return true
   }
   return(
@@ -105,7 +124,7 @@ function CreatePage() {
                     {...register('githubToken')}
                     placeholder="GitHub Token (Optional)"/>
                 <div className="h-4"></div>
-                <Button type="submit">
+                <Button type="submit" disabled={createProject.isPending}>
                     <Plus />
                     Create Project
                 </Button>

@@ -3,31 +3,20 @@ import { Bot, LayoutDashboard, Plus, Presentation } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 import Image from "next/image";
+import { useLocalStorage } from "~/hooks/use-LocalStorage";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
-  SidebarInset,
   SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
   useSidebar,
 } from "~/components/ui/sidebar";
 import Link from "next/link";
@@ -48,22 +37,14 @@ const items = [
         icon:Presentation
     }
 ]
-const projects = [
-    {
-        name : 'Project1'
-    },
-    {
-        name : 'Project2'
-    },
-    {
-        name : 'Project3'
-    },
-]
 
 export function AppSidebar(){
     const pathname = usePathname();
     const {state} = useSidebar();
     const collapsed = state === "collapsed"
+    const {data : projects =[], isLoading } = api.project.getProjects.useQuery();
+    const createProject = api.project.createProject.useMutation();
+    const [projectId,setProjectId] = useLocalStorage("project-id",'')
     return(
         <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>
@@ -105,24 +86,35 @@ export function AppSidebar(){
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {projects.map((project)=>{
+                            {
+                                isLoading ? ( <SidebarMenuSkeleton />)
+                                : (
+                                    projects.map((project)=>{
                             return(
                                 <SidebarMenuItem key={project.name}>
-                                    <SidebarMenuButton asChild>
+                                    <SidebarMenuButton asChild onClick={()=>setProjectId(project.id)}>
                                         <div>
-                                            <div className={cn('rounded-sm border size-6 flex items-center justify-center text-sm bg-white text-primary p-2',
+                                            <div className={cn('rounded-sm border size-6 flex items-center justify-center text-sm bg-primary/20 text-primary p-2',
                                                 {
-                                                    'bg-primary text-white hover:bg-primary hover:text-white' : true
+                                                    'bg-primary text-white hover:bg-primary hover:text-white' : project.id === projectId
                                                 }
                                             )}>
                                             {project.name[0]} 
                                             </div>
-                                            {project.name}
+                                            <div className={cn('text-gray-600 dark:text-white/50',
+                                                {
+                                                    'text-black dark:text-white' : project.id === projectId
+                                                }
+                                                )}>
+                                                {project.name}
+                                            </div>
                                         </div>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             )
                             })
+                            
+                                )
                             }
                             <div className="h-4"></div>
                             <SidebarMenuItem>
@@ -135,7 +127,7 @@ export function AppSidebar(){
                                 </Link>
                                 ) : (
                                     <Link href="/create">
-                                    <Button size="sm" variant="outline">
+                                    <Button size="sm" variant="outline" disabled={createProject.isPending}>
                                         <Plus />
                                     </Button>
                                 </Link>
