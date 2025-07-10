@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import Image from "next/image";
-import { useLocalStorage } from "~/hooks/use-LocalStorage";
+import { useProjectContext } from '~/context/ProjectContext';
 import {
   Sidebar,
   SidebarContent,
@@ -39,12 +39,12 @@ const items = [
 ]
 
 export function AppSidebar(){
+    const { setProjectId, projectId } = useProjectContext();
     const pathname = usePathname();
     const {state} = useSidebar();
     const collapsed = state === "collapsed"
     const {data : projects =[], isLoading } = api.project.getProjects.useQuery();
     const createProject = api.project.createProject.useMutation();
-    const [projectId,setProjectId] = useLocalStorage("project-id",'')
     return(
         <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>

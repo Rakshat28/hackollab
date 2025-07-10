@@ -1,6 +1,7 @@
 import "~/styles/globals.css";
 import {ClerkProvider} from "@clerk/nextjs";
 import { ThemeProvider } from "~/components/theme-provider"
+import { ProjectProvider } from "~/context/ProjectContext";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
@@ -29,12 +30,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange>
       <ClerkProvider>
+        <ProjectProvider>
         <html lang="en" className={`${geist.variable}`}>
-          <body>
+            <body>
             <TRPCReactProvider>{children}</TRPCReactProvider>
             <Toaster richColors/>
           </body>
         </html>
+          </ProjectProvider>
       </ClerkProvider>
     </ThemeProvider>
 

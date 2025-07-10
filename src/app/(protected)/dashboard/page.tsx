@@ -1,11 +1,20 @@
+'use client'
 import React from 'react'
+import { useProjectContext } from '~/context/ProjectContext';
+import { api } from '~/trpc/react';
 
-function page() {
+function Page() {
+  const {projectId} = useProjectContext();
+
+    const {data: projects =[] , isLoading} = api.project.getProjects.useQuery();
+    const project = projects.find((p)=> p.id === projectId)
+
+  
   return (
     <div>
-      dashboard
+      {project?.name}
     </div>
   )
 }
 
-export default page
+export default Page
