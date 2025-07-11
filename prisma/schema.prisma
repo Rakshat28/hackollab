@@ -29,6 +29,7 @@ model Project{
     githubUrl String
     deletedAt DateTime?
     UserToProject UserToProject[]
+    commit Commit[]
 }
 
 model UserToProject {
@@ -42,4 +43,18 @@ model UserToProject {
     project Project @relation(fields: [projectId], references: [id])
 
     @@unique([userId,projectId])
+}
+
+model Commit{
+    id String @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    projectId String 
+    project Project @relation(fields: [projectId], references: [id])
+    commitMessage String
+    commitHash String @unique
+    commitAuthorName String
+    commitAvatar String
+    commitDate DateTime
+    commitSummary String
 }
