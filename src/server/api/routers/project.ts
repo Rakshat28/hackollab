@@ -1,6 +1,7 @@
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from 'zod';
 import { TRPCError } from "@trpc/server";
+import { pollCommits } from "~/lib/github";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure.input(
@@ -36,7 +37,7 @@ export const projectRouter = createTRPCRouter({
           }
         }
       });
-
+      await pollCommits(project.id)
       return project;
     } catch (err) {
       if(err instanceof TRPCError){
@@ -66,5 +67,29 @@ export const projectRouter = createTRPCRouter({
       }
     })
     return projects;
-  })
+  }),
+
+  getCommits: protectedProcedure.input(z.object({
+    projectId : z.string()
+  })).query(async ({ctx,input}) => {
+    return await ctx.db.commit.findMany({where: { projectId : input.projectId}})
+  }),
+
+  pollCommits: protectedProcedure
+  .input(z.object({ projectId: z.string() }))
+  .mutation(async ({ input }) => {
+    return await pollCommits(input.projectId);
+  }),
+
+  getProjectById: protectedProcedure.input(z.object({
+  projectId: z.string()
+})).query(async ({ ctx, input }) => {
+  return await ctx.db.project.findUnique({
+    where: { id: input.projectId },
+    include: {
+      commits: true,
+    }
+  });
+})
+
 });

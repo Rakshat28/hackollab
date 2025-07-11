@@ -29,7 +29,7 @@ model Project{
     githubUrl String
     deletedAt DateTime?
     UserToProject UserToProject[]
-    commit Commit[]
+    commits Commit[]
 }
 
 model UserToProject {
