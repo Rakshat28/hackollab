@@ -3,6 +3,7 @@ import { SidebarProvider } from '~/components/ui/sidebar'
 import { UserButton } from "@clerk/nextjs";
 import { AppSidebar } from './dashboard/app-sidebar';
 import { ModeToggle } from '~/components/mode-toggle';
+import { GeminiKeyInput } from '~/components/gemini-key-input';
 
 type Props = {
     children: React.ReactNode
@@ -15,6 +16,9 @@ const SidebarLayout = ({children}: Props) => {
         <AppSidebar />
         <main className="w-full m-2">
             <div className="flex items-center gap-4 border-sidebar bg-sidebar border shadow rounded-md p-2 px-4 mt-[1.5]">
+                <div className="flex items-center gap-2">
+                    <GeminiKeyInput />
+                </div>
                 <div className="ml-auto flex flex-row gap-2">
                     <UserButton />
                     <div className="">

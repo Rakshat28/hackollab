@@ -20,6 +20,7 @@ model User{
     firstName String?
     lastName String?
     emailAddress String @unique
+    geminiApiKey String?
     UserToProject UserToProject[]
     credit Int @default(150)
 }

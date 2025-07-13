@@ -37,9 +37,17 @@ export const loadGithubRepo = async (githubUrl: string, githubToken?: string) =>
   return docs;
 }
 
-export const indexGithubRepo = async (githubUrl: string, githubToken?: string, projectId?: string) => {
+export const indexGithubRepo = async (githubUrl: string, githubToken?: string, projectId?: string, apiKey?: string) => {
+  if (!apiKey) {
+    throw new Error('Gemini API key is required for indexing');
+  }
   const docs = await loadGithubRepo(githubUrl, githubToken);
-  const allEmbeddings = await generateEmbeddings(docs);
+  
+  // Limit to first 50 files to avoid overwhelming the API
+  const limitedDocs = docs.slice(0, 50);
+  console.log(`Processing ${limitedDocs.length} files out of ${docs.length} total files`);
+  
+  const allEmbeddings = await generateEmbeddings(limitedDocs, apiKey);
 
   await Promise.allSettled(allEmbeddings.map(async (embedding) => {
     if (!embedding) return;
@@ -61,15 +69,39 @@ export const indexGithubRepo = async (githubUrl: string, githubToken?: string, p
 };
 
 
-const generateEmbeddings = async(docs: Document[]) => {
-  return await Promise.all(docs.map(async (doc) => {
-    const summary = await summariseCode(doc); 
-    const embedding = await generateEmbedding(summary);
-     return {
-      summary,
-      embedding,
-      sourceCode: JSON.parse(JSON.stringify(doc.pageContent)) as string,
-      fileName: (doc.metadata as {source : string}).source 
-     }
-  }))
+// Helper function to add delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const generateEmbeddings = async(docs: Document[], apiKey: string) => {
+  const results = [];
+  
+  for (let i = 0; i < docs.length; i++) {
+    const doc = docs[i];
+    if (!doc) continue;
+    
+    try {
+      console.log(`Processing file ${i + 1}/${docs.length}: ${(doc.metadata as {source : string}).source}`);
+      
+      const summary = await summariseCode(doc, apiKey); 
+      const embedding = await generateEmbedding(summary, apiKey);
+      
+      results.push({
+        summary,
+        embedding,
+        sourceCode: JSON.parse(JSON.stringify(doc.pageContent)) as string,
+        fileName: (doc.metadata as {source : string}).source 
+      });
+      
+      // Add delay between requests to avoid rate limiting (2 seconds between each)
+      if (i < docs.length - 1) {
+        await delay(2000);
+      }
+    } catch (error) {
+      console.error(`Error processing file ${(doc.metadata as {source : string}).source}:`, error);
+      // Continue with next file instead of failing completely
+      continue;
+    }
+  }
+  
+  return results;
 }

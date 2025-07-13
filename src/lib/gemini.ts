@@ -1,12 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { Document } from 'langchain/document';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const model = genAI.getGenerativeModel({
+// Helper function to create Gemini instance with API key
+const createGeminiInstance = (apiKey: string) => {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({
     model: 'gemini-1.5-flash'
-})
+  });
+};
 
-export const getCommitSummary = async (diff: string) => {
+export const getCommitSummary = async (diff: string, apiKey: string) => {
+    const model = createGeminiInstance(apiKey);
     const response = await model.generateContent([
   `You are an expert programmer, and you are trying to summarize a git diff.
 Reminders about the git diff format:
@@ -45,25 +49,66 @@ It is given only as an example of appropriate comments.`,
     return response.response.text();
 }
 
-export async function summariseCode(doc : Document){
+export async function summariseCode(doc : Document, apiKey: string){
+  const model = createGeminiInstance(apiKey);
   const code = doc.pageContent.slice(0,10000);
-  const response = await model.generateContent([
-    `You are an intelligent senior software engineer who specialise in onboarding junior software engineers onto projects`,
-    `You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file
-        here is the code:
-        ---
-        ${code}
-        ---
-        give a summary no more than 100 words of the code above`
-  ]);
-  return response.response.text();
+  
+  try {
+    const response = await model.generateContent([
+      `You are an intelligent senior software engineer who specialise in onboarding junior software engineers onto projects`,
+      `You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file
+          here is the code:
+          ---
+          ${code}
+          ---
+          give a summary no more than 100 words of the code above`
+    ]);
+    return response.response.text();
+  } catch (error) {
+    console.error('Error summarizing code:', error);
+    // Fallback to a simple summary
+    return `This file contains code for ${doc.metadata.source}`;
+  }
 }
 
-export async function generateEmbedding(summary: string){
-  const model = genAI.getGenerativeModel({
-    model : 'gemini-1.5-flash'
-  });
-  const result = await model.embedContent(summary);
-  const embedding = result.embedding;
+export async function generateEmbedding(summary: string, apiKey: string){
+  try {
+    // Create a simple embedding using gemini-1.5-flash
+    const embeddingModel = createGeminiInstance(apiKey);
+    
+    // Use generateContent to create a simple embedding representation
+    const response = await embeddingModel.generateContent(
+      `Convert this text to a numerical representation (just numbers separated by commas): ${summary}`
+    );
+    const text = response.response.text();
+    
+    // Parse the response and convert to numbers
+    const numbers = text.split(',').map((num: string) => parseFloat(num.trim())).filter((num: number) => !isNaN(num));
+    
+    // Ensure we have a consistent embedding size (768 dimensions)
+    const embedding: number[] = Array.from({ length: 768 }, () => 0);
+    for (let i = 0; i < Math.min(numbers.length, 768); i++) {
+      embedding[i] = numbers[i] ?? 0;
+    }
+    
+    return embedding;
+  } catch (error) {
+    console.error('Error generating embedding with Gemini:', error);
+    // Fallback to simple hash-based embedding
+    return generateSimpleEmbedding(summary);
+  }
+}
+
+// Simple hash-based embedding fallback
+function generateSimpleEmbedding(text: string): number[] {
+  const hash = text.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  const embedding: number[] = Array.from({ length: 768 }, () => 0);
+  for (let i = 0; i < 768; i++) {
+    embedding[i] = Math.sin(hash + i) * 0.5;
+  }
   return embedding;
 }

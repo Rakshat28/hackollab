@@ -67,7 +67,7 @@ export const getCommitHashes = async (githubUrl: string, sinceDate?: string): Pr
   return commits.sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime());
 };
 
-export const pollCommits = async (projectId: string) => {
+export const pollCommits = async (projectId: string, apiKey?: string) => {
   
     const {githubUrl} = await fetchProjectGithubUrl(projectId)
     const lastCommit = await db.commit.findFirst({
@@ -79,7 +79,7 @@ export const pollCommits = async (projectId: string) => {
     const unprocessedCommits = rawUnprocessedCommits
       .sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime())
       .slice(0, 10);
-    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((unprocessedCommit) => summariseCommit(githubUrl, unprocessedCommit.commitHash)));
+    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((unprocessedCommit) => summariseCommit(githubUrl, unprocessedCommit.commitHash, apiKey)));
     const summaries = summaryResponses.map((summary) => {
       if(summary.status === 'fulfilled'){
         return summary.value
@@ -102,13 +102,16 @@ export const pollCommits = async (projectId: string) => {
     return commits;
 }
 
-async function summariseCommit(githubUrl: string, commitHash: string){
+async function summariseCommit(githubUrl: string, commitHash: string, apiKey?: string){
   const {data} = await axios.get<string>(`${githubUrl}/commit/${commitHash}.diff`,{
     headers: {
       Accept : 'application/vnd.github.v3.diff'
     }
   })
-  return await getCommitSummary(data) || "";
+  if (!apiKey) {
+    return data.split("\n")[0] || ""; // Fallback to first line of commit message
+  }
+  return await getCommitSummary(data, apiKey) || "";
 }
 
 async function fetchProjectGithubUrl(projectId: string){

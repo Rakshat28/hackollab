@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import type { Commit, Project } from "@prisma/client";
 import { ExternalLink, GitGraph } from "lucide-react";
 import Link from "next/link";
+import { useContext } from 'react';
+import React from 'react';
+
+export const ProjectRefetchContext = React.createContext<null | (() => void)>(null);
 
 export default function CommitLog({
   project,
@@ -14,6 +18,7 @@ export default function CommitLog({
   project: Project & { commits: Commit[] };
 }) {
   const router = useRouter();
+  const refetchProject = React.useContext(ProjectRefetchContext);
 
   const pollCommits = api.project.pollCommits.useMutation();
 
@@ -25,25 +30,31 @@ export default function CommitLog({
 
   return (
     <>
+      <div className="flex flex-row gap-2">
       <Button
         className="self-center"
-        onClick={() => {
+        onClick={async () => {
           toast.promise(
             pollCommits.mutateAsync({ projectId: project.id }),
             {
               loading: "Polling commits...",
-              success: () => {
-                router.refresh();
+              success: async () => {
+                if (refetchProject) {
+                  await refetchProject();
+                }
                 return "Successfully polled commits!";
               },
               error: "Failed to poll commits",
             }
+            
           );
         }}
       >
         <GitGraph className="mr-1 h-5 w-5" />
         Refresh
       </Button>
+
+      </div>
 
       <div className="h-4" />
 

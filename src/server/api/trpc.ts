@@ -81,20 +81,27 @@ export const createTRPCRouter = t.router;
  * network latency that would occur in production but not in local development.
  */
 const isAuthenticated = t.middleware(async({next,ctx})=>{
-  const user = await auth();
-  if(!user){
-    throw new TRPCError(
-      {
+  try {
+    const user = await auth();
+    if(!user || !user.userId){
+      throw new TRPCError({
         code : "UNAUTHORIZED",
         message : "You must be logged in to access this resource"
       });
-  }
-  return next({
-    ctx: {
-      ...ctx,
-      user
     }
-  })
+    return next({
+      ctx: {
+        ...ctx,
+        user
+      }
+    })
+  } catch (error) {
+    console.error("Authentication error:", error);
+    throw new TRPCError({
+      code : "UNAUTHORIZED",
+      message : "Authentication failed"
+    });
+  }
 })
 
 const timingMiddleware = t.middleware(async ({ next, path }) => {
@@ -122,4 +129,4 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
-export const protectedProcedure = t.procedure.use(isAuthenticated);
+export const protectedProcedure = t.procedure.use(isAuthenticated).use(timingMiddleware);
