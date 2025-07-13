@@ -1,13 +1,31 @@
 'use client'
 import { Github, ExternalLink } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProjectContext } from '~/context/ProjectContext';
 import { api } from '~/trpc/react';
 import CommitLog from './commit-log';
+import { Loader2 } from 'lucide-react';
 
 function Page() {
   const { projectId } = useProjectContext();
-  const { data: project, isLoading } = api.project.getProjectById.useQuery({ projectId });
+  const [isPolling, setIsPolling] = useState(false);
+  const { data: project, isLoading, refetch } = api.project.getProjectById.useQuery({ projectId });
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (project && project.commits.length === 0) {
+      setIsPolling(true);
+      interval = setInterval(() => {
+        void refetch();
+      }, 2000);
+    } else {
+      setIsPolling(false);
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [project?.commits.length, refetch]);
 
   if (!project) return <div>Loading or no project selected</div>;
 
@@ -43,6 +61,12 @@ function Page() {
       </div>
 
       <div className="mt-8">
+        {isPolling && (
+          <div className="flex items-center gap-2 text-gray-500 mb-4">
+            <Loader2 className="animate-spin" />
+            Fetching commits from GitHub...
+          </div>
+        )}
         <CommitLog project={project} /> {/* ✅ Pass project here */}
       </div>
     </div>

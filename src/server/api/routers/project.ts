@@ -12,45 +12,45 @@ export const projectRouter = createTRPCRouter({
       githubToken: z.string().optional()
     })
   ).mutation(async ({ ctx, input }) => {
-    try {
-      const existingProject = await ctx.db.project.findFirst({
-        where : {
-          OR : [
-            {name : input.name},
-            {githubUrl: input.githubUrl}
-          ]
-        }
-      });
-      if(existingProject){
-        throw new TRPCError({
-          code : "CONFLICT",
-          message: "Project already exists"
-        })
-      };
-      const project = await ctx.db.project.create({
-        data: {
-          name: input.name,
-          githubUrl: input.githubUrl,
-          UserToProject: {
-            create: {
-              userId: ctx.user.userId!
-            }
+    const existingProject = await ctx.db.project.findFirst({
+      where : {
+        OR : [
+          {name : input.name},
+          {githubUrl: input.githubUrl}
+        ]
+      }
+    });
+    if(existingProject){
+      throw new TRPCError({
+        code : "CONFLICT",
+        message: "Project already exists"
+      })
+    };
+    const project = await ctx.db.project.create({
+      data: {
+        name: input.name,
+        githubUrl: input.githubUrl,
+        UserToProject: {
+          create: {
+            userId: ctx.user.userId!
           }
         }
-      });
-      await indexGithubRepo(input.githubUrl, input.githubToken, project.id);
-      await pollCommits(project.id)
-      return project;
-    } catch (err) {
-      if(err instanceof TRPCError){
-        throw err;
       }
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Could not create project",
-        cause: err
-      });
-    }
+    });
+    // Run repo indexing and commit polling in the background
+    (async () => {
+      try {
+        await indexGithubRepo(input.githubUrl, input.githubToken, project.id);
+      } catch (err) {
+        console.error('Error indexing GitHub repo:', err);
+      }
+      try {
+        await pollCommits(project.id);
+      } catch (err) {
+        console.error('Error polling commits:', err);
+      }
+    })();
+    return project;
   }),
 
   getProjects: protectedProcedure.query(async ({ctx}) => {

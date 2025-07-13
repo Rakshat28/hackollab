@@ -6,6 +6,8 @@ import { Button } from '~/components/ui/button';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '~/trpc/react';
+import { useRouter } from 'next/navigation';
+import { useProjectContext } from '~/context/ProjectContext';
 
 type FormInput = {
     repoUrl: string,
@@ -16,19 +18,22 @@ type FormInput = {
 
 function CreatePage() {
   const { register,handleSubmit,reset} = useForm<FormInput>();
-  const createProject = api.project.createProject.useMutation()
+  const createProject = api.project.createProject.useMutation();
   const utils = api.useUtils();
+  const router = useRouter();
+  const { setProjectId } = useProjectContext();
   function onSubmit(data:FormInput){
     createProject.mutate({
         name: data.projectName,
         githubUrl: data.repoUrl,
         githubToken: data.githubToken
     },{
-        onSuccess : ()=> {
-            toast.success("Project created successfully")
+        onSuccess : (project)=> {
+            toast.success("Project created successfully");
             void utils.project.getProjects.invalidate();
-            reset()
-            
+            setProjectId(project.id);
+            router.push('/dashboard');
+            reset();
         }, onError : (error) => {
           if(error?.data?.code === "CONFLICT")
             toast.error(error?.message);

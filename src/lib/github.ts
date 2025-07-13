@@ -18,35 +18,53 @@ type Response = {
 
 export const getCommitHashes = async (githubUrl: string, sinceDate?: string): Promise<Response[]> => {
   const [, , , owner, repo] = githubUrl.split("/");
- console.log("Polling since:", sinceDate);
+  console.log("Polling since:", sinceDate);
 
   if(!owner || !repo){
     throw new Error("owner or repo missing")
   }
-const { data } = await octokit.request('GET /repos/{owner}/{repo}/commits', {
-  owner,
-  repo,
-  since: sinceDate,
-  headers: {
-    'Cache-Control': 'no-cache', 
-    'If-None-Match': ''          
+  let data;
+  try {
+    ({ data } = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+      owner,
+      repo,
+      since: sinceDate,
+      sha: 'main',
+      headers: {
+        'Cache-Control': 'no-cache', 
+        'If-None-Match': ''          
+      }
+    }));
+  } catch (e) {
+    // If main branch fails, try master
+    try {
+      ({ data } = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+        owner,
+        repo,
+        since: sinceDate,
+        sha: 'master',
+        headers: {
+          'Cache-Control': 'no-cache', 
+          'If-None-Match': ''          
+        }
+      }));
+    } catch (err) {
+      throw new Error('Failed to fetch commits from both main and master branches.');
+    }
   }
-});
 
+  const commits: Response[] = data.map((commit) => {
+    return {
+      commitMessage: commit.commit.message || "",
+      commitHash: commit.sha,
+      commitAuthorName: commit.commit.author?.name ?? "Unknown",
+      commitAvatar: commit.author?.avatar_url ?? "",
+      commitDate: commit.commit.author?.date ?? "",
+      commitSummary: commit.commit.message?.split("\n")[0] ?? "",
+    };
+  });
 
-const commits: Response[] = data.map((commit) => {
-  return {
-    commitMessage: commit.commit.message || "",
-    commitHash: commit.sha,
-    commitAuthorName: commit.commit.author?.name ?? "Unknown",
-    commitAvatar: commit.author?.avatar_url ?? "",
-    commitDate: commit.commit.author?.date ?? "",
-    commitSummary: commit.commit.message?.split("\n")[0] ?? "",
-  };
-});
-
-return commits.sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime());
-  
+  return commits.sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime());
 };
 
 export const pollCommits = async (projectId: string) => {

@@ -5,16 +5,35 @@ import { summariseCode } from './gemini'
 import { db } from '~/server/db'
 
 export const loadGithubRepo = async (githubUrl: string, githubToken?: string) => {
-  const loader = new GithubRepoLoader(githubUrl, {
-    accessToken: githubToken ?? '',
-    branch: 'main',
-    ignoreFiles: ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb'],
-    recursive: true,
-    unknown: 'warn',
-    maxConcurrency: 5,
-  });
-
-  const docs = await loader.load();
+  let docs: Document[] = [];
+  let triedMaster = false;
+  try {
+    const loader = new GithubRepoLoader(githubUrl, {
+      accessToken: githubToken ?? '',
+      branch: 'main',
+      ignoreFiles: ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb'],
+      recursive: true,
+      unknown: 'warn',
+      maxConcurrency: 5,
+    });
+    docs = await loader.load();
+  } catch (e) {
+    // If main branch fails, try master
+    triedMaster = true;
+    try {
+      const loader = new GithubRepoLoader(githubUrl, {
+        accessToken: githubToken ?? '',
+        branch: 'master',
+        ignoreFiles: ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb'],
+        recursive: true,
+        unknown: 'warn',
+        maxConcurrency: 5,
+      });
+      docs = await loader.load();
+    } catch (err) {
+      throw new Error('Failed to load repo from both main and master branches.');
+    }
+  }
   return docs;
 }
 
