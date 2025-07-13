@@ -16,16 +16,23 @@ type Response = {
   commitSummary: string;
 };
 
-export const getCommitHashes = async (githubUrl: string): Promise<Response[]> => {
+export const getCommitHashes = async (githubUrl: string, sinceDate?: string): Promise<Response[]> => {
   const [, , , owner, repo] = githubUrl.split("/");
+ console.log("Polling since:", sinceDate);
 
   if(!owner || !repo){
     throw new Error("owner or repo missing")
   }
-  const { data } = await octokit.rest.repos.listCommits({
-    owner : owner,
-    repo : repo, 
-  });
+const { data } = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+  owner,
+  repo,
+  since: sinceDate,
+  headers: {
+    'Cache-Control': 'no-cache', 
+    'If-None-Match': ''          
+  }
+});
+
 
 const commits: Response[] = data.map((commit) => {
   return {
@@ -38,15 +45,24 @@ const commits: Response[] = data.map((commit) => {
   };
 });
 
-  return commits.slice(0,10).sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime());
+return commits.sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime());
+  
 };
 
 export const pollCommits = async (projectId: string) => {
+  
     const {githubUrl} = await fetchProjectGithubUrl(projectId)
-    const commitHashes = await getCommitHashes(githubUrl)
-    const unprocessedCommits = await filterUnprocessedCommits(projectId, commitHashes)
-    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((unprocessedCommit)=>summariseCommit(githubUrl,unprocessedCommit.commitHash)));
-    const summaries = summaryResponses.map((summary)=>{
+    const lastCommit = await db.commit.findFirst({
+      where: { projectId },
+      orderBy: { commitDate: 'desc' },
+    });
+    const commitHashes = await getCommitHashes(githubUrl, lastCommit?.commitDate.toISOString());
+    const rawUnprocessedCommits = await filterUnprocessedCommits(projectId, commitHashes);
+    const unprocessedCommits = rawUnprocessedCommits
+      .sort((a, b) => new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime())
+      .slice(0, 10);
+    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((unprocessedCommit) => summariseCommit(githubUrl, unprocessedCommit.commitHash)));
+    const summaries = summaryResponses.map((summary) => {
       if(summary.status === 'fulfilled'){
         return summary.value
       }

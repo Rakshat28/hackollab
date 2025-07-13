@@ -17,6 +17,12 @@ export default function CommitLog({
 
   const pollCommits = api.project.pollCommits.useMutation();
 
+  // Sort commits by date descending (newest first)
+  const sortedCommits = [...project.commits].sort(
+    (a, b) =>
+      new Date(b.commitDate).getTime() - new Date(a.commitDate).getTime()
+  );
+
   return (
     <>
       <Button
@@ -27,7 +33,7 @@ export default function CommitLog({
             {
               loading: "Polling commits...",
               success: () => {
-                router.refresh(); 
+                router.refresh();
                 return "Successfully polled commits!";
               },
               error: "Failed to poll commits",
@@ -42,11 +48,11 @@ export default function CommitLog({
       <div className="h-4" />
 
       <ul role="list" className="space-y-6">
-        {project.commits.map((commit, commitIdx) => (
+        {sortedCommits.map((commit, commitIdx) => (
           <li key={commit.id} className="relative flex gap-x-4">
             <div
               className={cn(
-                commitIdx === project.commits.length - 1 ? "h-6" : "-bottom-6",
+                commitIdx === sortedCommits.length - 1 ? "h-6" : "-bottom-6",
                 "absolute left-0 top-0 flex w-6 justify-center"
               )}
             >
@@ -65,7 +71,7 @@ export default function CommitLog({
                   <Link
                     target="_blank"
                     className="py-0.5 text-xs leading-5 text-gray-500"
-                    href={`${project.githubUrl}/commit/${commit.commitHash}`} 
+                    href={`${project.githubUrl}/commit/${commit.commitHash}`}
                   >
                     <span className="font-medium text-primary/70">
                       {commit.commitAuthorName}
