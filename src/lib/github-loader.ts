@@ -74,6 +74,8 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const generateEmbeddings = async(docs: Document[], apiKey: string) => {
   const results = [];
+  let consecutiveErrors = 0;
+  const maxConsecutiveErrors = 3;
   
   for (let i = 0; i < docs.length; i++) {
     const doc = docs[i];
@@ -92,16 +94,27 @@ const generateEmbeddings = async(docs: Document[], apiKey: string) => {
         fileName: (doc.metadata as {source : string}).source 
       });
       
+      consecutiveErrors = 0; // Reset error counter on success
+      
       // Add delay between requests to avoid rate limiting (2 seconds between each)
       if (i < docs.length - 1) {
         await delay(2000);
       }
     } catch (error) {
       console.error(`Error processing file ${(doc.metadata as {source : string}).source}:`, error);
+      consecutiveErrors++;
+      
+      // If we get too many consecutive errors (likely quota exceeded), stop processing
+      if (consecutiveErrors >= maxConsecutiveErrors) {
+        console.log(`Stopping processing after ${maxConsecutiveErrors} consecutive errors. Likely quota exceeded.`);
+        break;
+      }
+      
       // Continue with next file instead of failing completely
       continue;
     }
   }
   
+  console.log(`Successfully processed ${results.length} files out of ${docs.length} total files`);
   return results;
 }

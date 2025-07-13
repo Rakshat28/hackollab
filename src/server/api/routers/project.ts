@@ -148,12 +148,27 @@ export const projectRouter = createTRPCRouter({
     // Re-index the project
     try {
       console.log('Starting project re-indexing...');
-      await indexGithubRepo(project.githubUrl, undefined, input.projectId, user.geminiApiKey);
+      // Use the GitHub token from environment variables
+      const githubToken = process.env.GITHUB_TOKEN;
+      await indexGithubRepo(project.githubUrl, githubToken, input.projectId, user.geminiApiKey);
       console.log('Project re-indexing completed successfully');
       return { success: true, message: "Project re-indexed successfully" };
     } catch (error) {
-      console.error('Error re-indexing project:', error);
-      throw new TRPCError({
+      console.error('Error during re-indexing:', error);
+      
+      // Check if any embeddings were created despite the error
+      const embeddingCount = await ctx.db.sourceCodeEmbedding.count({
+        where: { projectId: input.projectId }
+      });
+      
+      if (embeddingCount > 0) {
+        return { 
+          success: true, 
+          message: `Partial re-indexing completed. ${embeddingCount} files indexed successfully. Some files may have failed due to API limits.` 
+        };
+      }
+      
+            throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to re-index project: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
