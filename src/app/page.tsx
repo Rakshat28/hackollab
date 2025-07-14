@@ -16,7 +16,6 @@ import {
 function page() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
-      {/* Header */}
       <header className="border-b border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -53,14 +52,16 @@ function page() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link href="/sign-up">
                 <Button className="px-8 py-6 text-lg">
-                  Start Free Trial
+                  Lets Try
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
+              <a href='https://github.com/Rakshat28/hackollab'>
               <Button variant="outline" className="px-8 py-6 text-lg">
                 <Github className="mr-2 w-5 h-5" />
                 View on GitHub
               </Button>
+              </a>
             </div>
           </div>
         </div>
@@ -153,7 +154,7 @@ function page() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/sign-up">
               <Button className="px-8 py-6 text-lg">
-                Get Started Free
+                Get Started
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
