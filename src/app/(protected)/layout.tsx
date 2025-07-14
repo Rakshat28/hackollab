@@ -11,7 +11,7 @@ type Props = {
 }
 
 function MobileSidebarTrigger() {
-  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   if (!isMobile) return null;
   return (
     <button
