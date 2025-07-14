@@ -26,6 +26,16 @@ export const projectRouter = createTRPCRouter({
         message: "Project already exists"
       })
     };
+    const user = await ctx.db.user.findUnique({
+      where: { id: ctx.user.userId },
+      select: { geminiApiKey: true }
+    });
+    if (!user?.geminiApiKey) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "No Gemini API key available. Please add your API key first."
+      });
+    }
     const project = await ctx.db.project.create({
       data: {
         name: input.name,
@@ -37,29 +47,25 @@ export const projectRouter = createTRPCRouter({
         }
       }
     });
-    // Get user's API key for indexing
-    const user = await ctx.db.user.findUnique({
-      where: { id: ctx.user.userId },
-      select: { geminiApiKey: true }
-    });
-
-    // Run repo indexing and commit polling in the background
-    void (async () => {
-      try {
-        if (user?.geminiApiKey) {
-          await indexGithubRepo(input.githubUrl, input.githubToken, project.id, user.geminiApiKey);
-        } else {
-          console.error('No Gemini API key available for indexing');
-        }
-      } catch (err) {
-        console.error('Error indexing GitHub repo:', err);
+    try {
+      await indexGithubRepo(input.githubUrl, input.githubToken, project.id, user.geminiApiKey);
+      const embeddingCount = await ctx.db.sourceCodeEmbedding.count({
+        where: { projectId: project.id }
+      });
+      if (embeddingCount === 0) {
+        await ctx.db.project.delete({ where: { id: project.id } });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to index the project codebase. Please check your GitHub URL, token, and Gemini API key, then try again."
+        });
       }
-      try {
-        await pollCommits(project.id, user?.geminiApiKey ?? undefined);
-      } catch (err) {
-        console.error('Error polling commits:', err);
-      }
-    })();
+    } catch (err) {
+      await ctx.db.project.delete({ where: { id: project.id } });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to index the project codebase. Please check your GitHub URL, token, and Gemini API key, then try again."
+      });
+    }
     return project;
   }),
 
@@ -120,55 +126,52 @@ export const projectRouter = createTRPCRouter({
       where: { id: ctx.user.userId },
       select: { geminiApiKey: true }
     });
-
     if (!user?.geminiApiKey) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "No Gemini API key available. Please add your API key first."
       });
     }
-
     const project = await ctx.db.project.findUnique({
       where: { id: input.projectId },
       select: { githubUrl: true }
     });
-
     if (!project) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Project not found"
       });
     }
-
-    // Clear existing embeddings
     await ctx.db.sourceCodeEmbedding.deleteMany({
       where: { projectId: input.projectId }
     });
-
-    // Re-index the project
     try {
       console.log('Starting project re-indexing...');
-      // Use the GitHub token from environment variables
       const githubToken = process.env.GITHUB_TOKEN;
       await indexGithubRepo(project.githubUrl, githubToken, input.projectId, user.geminiApiKey);
+      const embeddingCount = await ctx.db.sourceCodeEmbedding.count({
+        where: { projectId: input.projectId }
+      });
+      if (embeddingCount === 0) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to re-index project: No embeddings were created. Please check your GitHub URL, token, and Gemini API key, then try again."
+        });
+      }
       console.log('Project re-indexing completed successfully');
       return { success: true, message: "Project re-indexed successfully" };
     } catch (error) {
       console.error('Error during re-indexing:', error);
-      
-      // Check if any embeddings were created despite the error
       const embeddingCount = await ctx.db.sourceCodeEmbedding.count({
         where: { projectId: input.projectId }
       });
-      
       if (embeddingCount > 0) {
-        return { 
-          success: true, 
-          message: `Partial re-indexing completed. ${embeddingCount} files indexed successfully. Some files may have failed due to API limits.` 
+        return {
+          success: true,
+          message: `Partial re-indexing completed. ${embeddingCount} files indexed successfully. Some files may have failed due to API limits.`
         };
       }
-      
-            throw new TRPCError({
+      throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: `Failed to re-index project: ${error instanceof Error ? error.message : 'Unknown error'}`
       });

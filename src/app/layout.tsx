@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import {ClerkProvider} from "@clerk/nextjs";
 import { ThemeProvider } from "~/components/theme-provider"
 import { ProjectProvider } from "~/context/ProjectContext";
+import { Analytics } from "@vercel/analytics/next"
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
@@ -35,6 +36,7 @@ export default function RootLayout({
             disableTransitionOnChange>
       <ClerkProvider>
         <ProjectProvider>
+          <Analytics />
 
             <TRPCReactProvider>{children}</TRPCReactProvider>
             <Toaster richColors/>
