@@ -42,7 +42,20 @@ function Page() {
     };
   }, [project?.commits.length, refetch]);
 
-  if (!project) return <div>Loading or no project selected</div>;
+  if (!project) return (
+    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex flex-col text-center">
+      <h2 className="text-muted-foreground font-bold text-xl">
+        Start with Hackollab
+      </h2>
+      <br />
+      <h2 className="text-muted-foreground font-bold">
+        Add key and project to start.
+      </h2>
+    </div>
+  </div>
+  
+  )
 
   // Check if project has any embeddings
   const hasEmbeddings = project.SourceCodeEmbedding && project.SourceCodeEmbedding.length > 0;
@@ -99,17 +112,12 @@ function Page() {
       {!hasEmbeddings && (
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex items-center gap-2">
-            <div className="text-yellow-600">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
             <div>
               <p className="text-sm font-medium text-yellow-800">
-                No code embeddings found
+                About Re-index Project
               </p>
               <p className="text-sm text-yellow-700">
-                This project hasn&apos;t been indexed yet. Click &quot;Re-index Project&quot; to enable AI code analysis.
+              Only re-index the project when its content changes, as the process is slow and consumes API resources quickly.
               </p>
             </div>
           </div>
@@ -120,7 +128,6 @@ function Page() {
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-5">
           {/* Replace with actual components */}
           <AskQuestionCard />
-          meetingcard
         </div>
       </div>
 

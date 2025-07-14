@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/u
 import Image from 'next/image'
 import { askQuestion } from './actions'
 import { Loader2 } from 'lucide-react'
+import MDEditor from '@uiw/react-md-editor'
+import CodeReferrences from './code-referrences'
 
 const AskQuestionCard = () => {
     const {projectId} = useProjectContext();
@@ -18,13 +20,14 @@ const AskQuestionCard = () => {
     const [isLoading, setIsLoading] = useState(false);
     
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      setAnswer('');
+      setFileReferences([]);
       e.preventDefault();
       if(!projectId || !question.trim()) return;
       
       setIsLoading(true);
+      const {output, fileReferences} = await askQuestion(question, projectId)
       setOpen(true);
-      setAnswer('');
-      setFileReferences([]);
       
       try {
         console.log('Starting to ask question:', question);
@@ -72,29 +75,16 @@ const AskQuestionCard = () => {
           </div>
         </DialogTitle>
       </DialogHeader>
-      
-      <div className="mt-4 space-y-4">
-        <div className="prose prose-sm max-w-none">
-          <div dangerouslySetInnerHTML={{ __html: answer || 'Processing your question...' }} />
-        </div>
-        
-        {fileReferences.length > 0 && (
-          <div className="mt-6">
-            <h3 className="font-semibold mb-2">Referenced Files:</h3>
-            <div className="space-y-1">
-              {fileReferences.map((file, index) => (
-                <div key={index} className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                  {file.fileName}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <MDEditor.Markdown source= {answer} className = 'max-w-[70vw] !h-full max-h-[40vh] overflow-scroll'/>
+      <div className="h-4"></div>
+      <CodeReferrences filesReferrences={fileReferences} />
+      <Button type='button' onClick={()=> {setOpen(false)}}>
+        Close
+      </Button>
       </DialogContent>
     </Dialog>
     
-    <Card className="relative col-span-3">
+    <Card className="relative col-span-5">
         <CardHeader>
             <CardTitle>Ask a question</CardTitle>
             <CardDescription>The Gemini model will give you the answer</CardDescription>

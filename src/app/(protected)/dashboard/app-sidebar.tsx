@@ -1,5 +1,5 @@
 'use client';
-import { Bot, LayoutDashboard, Plus, Presentation } from "lucide-react";
+import { Bot, LayoutDashboard, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "~/lib/utils";
@@ -26,16 +26,6 @@ const items = [
         url:'/dashboard',
         icon:LayoutDashboard
     },
-    {
-        title:'Q&A',
-        url:'/qa',
-        icon:Bot
-    },
-    {
-        title:'Meetings',
-        url:'/meetings',
-        icon:Presentation
-    }
 ]
 
 export function AppSidebar(){

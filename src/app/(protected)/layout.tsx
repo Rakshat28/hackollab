@@ -19,6 +19,9 @@ const SidebarLayout = ({children}: Props) => {
             <div className="flex items-center gap-4 border-sidebar bg-sidebar border shadow rounded-md p-2 px-4 mt-[1.5]">
                 <div className="flex items-center gap-2">
                     <GeminiKeyInput />
+                    <p className='text-muted-foreground text-sm flex items-center'>
+                    Add Gemini API key first.
+                    </p>
                 </div>
                 <div className="ml-auto flex flex-row gap-2">
                     <UserButton />
