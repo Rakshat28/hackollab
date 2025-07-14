@@ -10,7 +10,7 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const user = await ctx.db.user.update({
-          where: { id: ctx.user.userId! },
+          where: { id: ctx.user.userId },
           data: { geminiApiKey: input.geminiApiKey }
         });
         return user;

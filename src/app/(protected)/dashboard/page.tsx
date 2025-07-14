@@ -14,7 +14,7 @@ function Page() {
   const { projectId } = useProjectContext();
   const [isPolling, setIsPolling] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
-  const { data: project, isLoading, refetch } = api.project.getProjectById.useQuery({ projectId });
+  const { data: project, refetch } = api.project.getProjectById.useQuery({ projectId });
   
   const reindexProject = api.project.reindexProject.useMutation({
     onSuccess: () => {

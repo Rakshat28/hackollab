@@ -55,7 +55,7 @@ export const getCommitHashes = async (githubUrl: string, sinceDate?: string): Pr
 
   const commits: Response[] = data.map((commit) => {
     return {
-      commitMessage: commit.commit.message || "",
+      commitMessage: commit.commit.message ?? "",
       commitHash: commit.sha,
       commitAuthorName: commit.commit.author?.name ?? "Unknown",
       commitAvatar: commit.author?.avatar_url ?? "",
@@ -109,7 +109,7 @@ async function summariseCommit(githubUrl: string, commitHash: string, apiKey?: s
     }
   })
   if (!apiKey) {
-    return data.split("\n")[0] || ""; // Fallback to first line of commit message
+    return data.split("\n")[0] ?? ""; // Fallback to first line of commit message
   }
   return await getCommitSummary(data, apiKey) || "";
 }

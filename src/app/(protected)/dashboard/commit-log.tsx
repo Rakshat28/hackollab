@@ -3,11 +3,10 @@ import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import type { Commit, Project } from "@prisma/client";
 import { ExternalLink, GitGraph } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useContext } from 'react';
 import React from 'react';
 
 export const ProjectRefetchContext = React.createContext<null | (() => void)>(null);
@@ -17,7 +16,6 @@ export default function CommitLog({
 }: {
   project: Project & { commits: Commit[] };
 }) {
-  const router = useRouter();
   const refetchProject = React.useContext(ProjectRefetchContext);
 
   const pollCommits = api.project.pollCommits.useMutation();
@@ -40,7 +38,7 @@ export default function CommitLog({
               loading: "Polling commits...",
               success: async () => {
                 if (refetchProject) {
-                  await refetchProject();
+                  refetchProject();
                 }
                 return "Successfully polled commits!";
               },
@@ -71,11 +69,13 @@ export default function CommitLog({
             </div>
 
             <>
-              <img
-                src={commit.commitAvatar}
-                alt=""
-                className="relative mt-3 h-8 w-8 flex-none rounded-full bg-gray-50 dark:bg-primary"
-              />
+            <Image
+  src={commit.commitAvatar}
+  alt=""
+  width={32}
+  height={32}
+  className="relative mt-3 h-8 w-8 flex-none rounded-full bg-gray-50 dark:bg-primary"
+/>
 
               <div className="flex-auto rounded-md bg-white p-3 ring-1 ring-inset ring-gray-200 dark:bg-[#111116] dark:ring-black">
                 <div className="flex justify-between gap-x-4">
