@@ -1,3 +1,4 @@
+
 import "~/styles/globals.css";
 import {ClerkProvider} from "@clerk/nextjs";
 import { ThemeProvider } from "~/components/theme-provider"
@@ -24,22 +25,25 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ThemeProvider
+    <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
+      <body>
+        
+      <ThemeProvider
             attribute="class"
             defaultTheme="dark"
             enableSystem
             disableTransitionOnChange>
       <ClerkProvider>
         <ProjectProvider>
-        <html lang="en" className={`${geist.variable}`}>
-            <body>
+
             <TRPCReactProvider>{children}</TRPCReactProvider>
             <Toaster richColors/>
-          </body>
-        </html>
+
           </ProjectProvider>
       </ClerkProvider>
     </ThemeProvider>
+      </body>
+    </html>
 
   );
 }

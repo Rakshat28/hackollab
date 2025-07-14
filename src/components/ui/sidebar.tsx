@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, VariantProps } from "class-variance-authority"
+import { useState,useEffect } from "react"
 import { PanelLeftIcon } from "lucide-react"
 
 import { useIsMobile } from "~/hooks/use-mobile"
@@ -604,12 +605,15 @@ function SidebarMenuSkeleton({
   showIcon = false,
   ...props
 }: React.ComponentProps<"div"> & {
-  showIcon?: boolean
+  showIcon?: boolean;
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  const [width, setWidth] = useState("80%"); // default consistent value
+
+  useEffect(() => {
+    // Generate random width only on client after hydration
+    const randomWidth = `${Math.floor(Math.random() * 40) + 50}%`;
+    setWidth(randomWidth);
+  }, []);
 
   return (
     <div
@@ -625,7 +629,7 @@ function SidebarMenuSkeleton({
         />
       )}
       <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
+        className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
         style={
           {
@@ -634,8 +638,11 @@ function SidebarMenuSkeleton({
         }
       />
     </div>
-  )
+  );
 }
+
+export default SidebarMenuSkeleton;
+
 
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
   return (

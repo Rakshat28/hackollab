@@ -18,9 +18,9 @@ export const GeminiKeyInput = () => {
   const { data: userProfile } = api.user.getProfile.useQuery();
   
   const updateGeminiKey = api.user.updateGeminiKey.useMutation({
-    onSuccess: () => {
+    onSuccess:async () => {
       toast.success('Gemini API key saved successfully!');
-      utils.user.getProfile.invalidate();
+      await utils.user.getProfile.invalidate();
       setOpen(false);
       setGeminiKey('');
     },
